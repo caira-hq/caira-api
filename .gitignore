@@ -1,0 +1,20 @@
+# Node Dependencies
+node_modules/
+
+# Environment Variables (Sangat Rahasia!)
+.env
+.env.*
+!.env.example
+
+# Prisma Generated Client
+generated/
+
+# Log Files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# OS Generated Files (Supaya file aneh dari Mac/Windows tidak ikut)
+.DS_Store
+Thumbs.db
