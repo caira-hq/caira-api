@@ -21,7 +21,7 @@ model Invoice {
   client_name  String
   client_email String
   description  String?
-  amount_usdc  Decimal
+  amount_xlm  Decimal
   status       String    @default("PENDING")
   created_at   DateTime  @default(now())
   
