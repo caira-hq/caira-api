@@ -11,7 +11,7 @@ const createInvoice = async (req, res) => {
     } = req.body;
     
     if (!user_id || !client_name || !client_email || !description || !amount_xlm) {
-      return res.status(400).json({ success: false, message: "Wallet dan Nama wajib diisi!" });
+      return res.status(400).json({ success: false, message: "Data Invoice tidak lengkap!" });
     }
     
 
@@ -19,7 +19,7 @@ const createInvoice = async (req, res) => {
     
     res.status(201).json({
       success: true,
-      message: "Invoice berhasil didaftarkan di Caira!",
+      message: "Invoice berhasil dibuat!",
       data: newInvoice
     });
   } catch (error) {
@@ -31,7 +31,7 @@ const createInvoice = async (req, res) => {
   }
 };
 
-const getInvoiceByCode = async (req, res) => {
+const getInvoiceDetails = async (req, res) => {
   try {
     const { code } = req.params;
     const invoice = await invoiceService.getInvoiceByCode(code);
@@ -41,33 +41,25 @@ const getInvoiceByCode = async (req, res) => {
   }
 };
 
-const verifyInvoice = async (req, res) => {
+const checkPaymentStatus = async (req, res) => {
   try {
     const { code } = req.params;
-    const invoice = await invoiceService.getInvoiceByCode(code);
+    const result = await invoiceService.verifyAndSettledInvoice(code);
 
-    if (!invoice) {
-      return res.status(404).json({ success: false, message: "Invoice tidak ditemukan!" });
+    if(result.success){
+      res.status(200).json(result);
+    } else {
+      res.status(200).json(result);
     }
 
-    const transaction = await invoiceService.verifyInvoice(invoice.invoice_code);
-    
-
-    res.status(200).json({ 
-      success: true,
-      message: "Pembayaran berhasil diverifikasi di jaringan Stellar!",
-      invoice: {
-        invoice_code: transaction.invoice_code,
-        status: transaction.status,
-      }
-    });
+   
   } catch (error) {
-    res.status(400).json({ success: false, message: "Pembayaran belum terdeteksi di jaringan. Silakan coba beberapa saat lagi." });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
 module.exports = {
   createInvoice,
-  getInvoiceByCode,
-  verifyInvoice
+  getInvoiceDetails,
+  checkPaymentStatus
 };
