@@ -1,65 +1,41 @@
-const invoiceService = require('../services/invoiceService');
+const invoiceService = require("../services/invoiceService");
+const response = require("../utils/response");
 
-const createInvoice = async (req, res) => {
+const createInvoice = async (req, res, next) => {
   try {
-    const { 
-        user_id,
-        client_name,
-        client_email,
-        description,
-        amount_xlm 
-    } = req.body;
-    
-    if (!user_id || !client_name || !client_email || !description || !amount_xlm) {
-      return res.status(400).json({ success: false, message: "Data Invoice tidak lengkap!" });
-    }
-    
-
-    const newInvoice = await invoiceService.createInvoice(user_id, client_name, client_email, description, amount_xlm);
-    
-    res.status(201).json({
-      success: true,
-      message: "Invoice berhasil dibuat!",
-      data: newInvoice
+    const { client_name, client_email, description, amount_xlm } = req.body;
+    const newInvoice = await invoiceService.createInvoice({
+      user_id: req.user.id,
+      client_name,
+      client_email,
+      description,
+      amount_xlm,
     });
+    return response.created(res, newInvoice, "Invoice berhasil dibuat.");
   } catch (error) {
-    console.log(1);
-    res.status(400).json({
-      success: false,
-      message: error.message
-    });
+    next(error);
   }
 };
 
-const getInvoiceDetails = async (req, res) => {
+const getInvoiceDetails = async (req, res, next) => {
   try {
-    const { code } = req.params;
-    const invoice = await invoiceService.getInvoiceByCode(code);
-    res.status(200).json({ success: true, data: invoice });
+    const invoice = await invoiceService.getInvoiceByCode(req.params.code);
+    return response.success(res, invoice);
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
-const checkPaymentStatus = async (req, res) => {
+const checkPaymentStatus = async (req, res, next) => {
   try {
-    const { code } = req.params;
-    const result = await invoiceService.verifyAndSettledInvoice(code);
-
-    if(result.success){
-      res.status(200).json(result);
-    } else {
-      res.status(200).json(result);
-    }
-
-   
+    const result = await invoiceService.verifyAndSettleInvoice(
+      req.params.code,
+      req.user.id,
+    );
+    return res.status(200).json(result);
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
-module.exports = {
-  createInvoice,
-  getInvoiceDetails,
-  checkPaymentStatus
-};
+module.exports = { createInvoice, getInvoiceDetails, checkPaymentStatus };

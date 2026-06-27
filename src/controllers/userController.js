@@ -1,28 +1,18 @@
-const userService = require('../services/userService');
+const userService = require("../services/userService");
+const response = require("../utils/response");
 
-const registerUser = async (req, res) => {
+const registerUser = async (req, res, next) => {
   try {
     const { stellar_wallet, display_name } = req.body;
-    
-    if (!stellar_wallet || !display_name) {
-      return res.status(400).json({ success: false, message: "Wallet dan Nama wajib diisi!" });
-    }
-
     const newUser = await userService.createUser(stellar_wallet, display_name);
-    
-    res.status(201).json({
-      success: true,
-      message: "User berhasil didaftarkan di Caira!",
-      data: newUser
-    });
+    return response.created(
+      res,
+      newUser,
+      "User berhasil didaftarkan di Caira.",
+    );
   } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message
-    });
+    next(error);
   }
 };
 
-module.exports = {
-  registerUser
-};
+module.exports = { registerUser };

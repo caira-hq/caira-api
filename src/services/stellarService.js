@@ -1,35 +1,37 @@
-const { Horizon } = require('@stellar/stellar-sdk');
+const { stellarServer, HORIZON_URL } = require("../config/stellar");
+const logger = require("../utils/logger");
 
-const server = new Horizon.Server('https://horizon-testnet.stellar.org');
-
+/**
+ * Memverifikasi pembayaran di jaringan Stellar dengan mencocokkan
+ * memo transaksi dengan invoice code.
+ *
+ * @param {string} walletAddress - Stellar public key penerima (merchant)
+ * @param {string} invoiceCode   - Kode invoice yang digunakan sebagai memo transaksi
+ * @returns {{ paid: boolean, txHash?: string }}
+ */
 const verifyPayment = async (walletAddress, invoiceCode) => {
-    try {
-        console.log(`['STELLAR] Mengecek transaksi di dompet: ${walletAddress} dengan Memo: ${invoiceCode} `);
+  logger.info(
+    `[STELLAR] Mengecek transaksi di wallet: ${walletAddress} | Memo: ${invoiceCode} | Network: ${HORIZON_URL}`,
+  );
 
-        const response = await server.transactions()
-            .forAccount(walletAddress)
-            .order('desc')
-            .limit(15)
-            .call();
+  const response = await stellarServer
+    .transactions()
+    .forAccount(walletAddress)
+    .order("desc")
+    .limit(20)
+    .call();
 
-        const foundTx = response.records.find(tx => {
-            return tx.memo === invoiceCode;
-        });
+  const matchedTx = response.records.find((tx) => tx.memo === invoiceCode);
 
-        if(foundTx){
-            console.log(`[STELLAR] ✅ Transaksi ditemukan! Hash: ${foundTx.hash}`);
-            return { paid: true, txHash: foundTx.hash };
-        }
+  if (matchedTx) {
+    logger.info(`[STELLAR] Transaksi ditemukan! Hash: ${matchedTx.hash}`);
+    return { paid: true, txHash: matchedTx.hash };
+  }
 
-        console.log(`[STELLAR] ⏳ Belum ada transaksi masuk untuk invoice ini.`);
-        return { paid: false};
-
-    } catch (error) {
-        console.error("[STELLAR] Gagal cek jaringan:", error.message);
-        return { paid: false, error: error.message }
-    }
+  logger.info(
+    `[STELLAR] Belum ada transaksi masuk untuk invoice ${invoiceCode}.`,
+  );
+  return { paid: false };
 };
 
-module.exports = {
-    verifyPayment
-};
+module.exports = { verifyPayment };

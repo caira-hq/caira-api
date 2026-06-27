@@ -1,0 +1,320 @@
+{
+  "info": {
+    "name": "Caira API",
+    "description": "Koleksi endpoint Caira API — platform invoicing berbasis Stellar blockchain.\n\nCara pakai:\n1. Import file ini ke Postman\n2. base_url sudah di-set ke http://localhost:5000\n3. Jalankan Register User terlebih dahulu\n4. Jalankan: node sign-challenge.js untuk dapat JWT\n5. Token otomatis tersimpan setelah request Verify & Login",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url",     "value": "http://localhost:5000", "type": "string" },
+    { "key": "token",        "value": "",                      "type": "string" },
+    { "key": "invoice_code", "value": "",                      "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "🏥 Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/health",
+              "host": ["{{base_url}}"],
+              "path": ["api", "health"]
+            },
+            "description": "Cek apakah server sedang berjalan. Tidak butuh auth."
+          }
+        }
+      ]
+    },
+    {
+      "name": "👤 Users",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stellar_wallet\": \"GCEZWKCA5VLDNRLN3RPRJMRZOX3Z6G5CHCGM8BKEV4SQWNWQRMWBFBY\",\n  \"display_name\": \"Budi Santoso\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Mendaftarkan user baru ke Caira.\n\nBody:\n- stellar_wallet (required) — Stellar Ed25519 public key valid (dimulai G, 56 karakter)\n- display_name  (required) — Nama tampilan, maks 100 karakter\n\nValidasi:\n- Format wallet dicek oleh Stellar SDK\n- Satu wallet hanya bisa didaftarkan sekali (409 jika duplikat)\n\nCara dapat public key:\n  node sign-challenge.js --keypair"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔐 Auth",
+      "item": [
+        {
+          "name": "1. Request Challenge",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/challenge",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "challenge"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stellar_wallet\": \"GCEZWKCA5VLDNRLN3RPRJMRZOX3Z6G5CHCGM8BKEV4SQWNWQRMWBFBY\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Langkah 1 dari 2 untuk login.\n\nServer mengembalikan pesan challenge yang harus ditandatangani pakai Stellar private key.\nChallenge kedaluwarsa dalam 5 menit.\n\nBody:\n- stellar_wallet (required) — Wallet yang sudah terdaftar\n\nSetelah dapat challenge, gunakan:\n  node sign-challenge.js <SECRET_KEY>\nScript akan otomatis sign dan menampilkan JWT token."
+          }
+        },
+        {
+          "name": "2. Verify & Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.token) {",
+                  "  pm.collectionVariables.set('token', res.data.token);",
+                  "  console.log('✅ Token tersimpan otomatis ke {{token}}');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/verify",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "verify"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stellar_wallet\": \"GCEZWKCA5VLDNRLN3RPRJMRZOX3Z6G5CHCGM8BKEV4SQWNWQRMWBFBY\",\n  \"signature\": \"<base64_signature_dari_sign-challenge.js>\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Langkah 2 dari 2 untuk login.\n\nBody:\n- stellar_wallet (required) — Sama dengan yang dipakai di Request Challenge\n- signature      (required) — Hasil signing challenge dalam format Base64\n\nCara dapat signature:\n  node sign-challenge.js <SECRET_KEY>\n\n✅ Tab Tests sudah dikonfigurasi untuk menyimpan token otomatis ke collection variable {{token}}.\nSemua endpoint yang butuh auth akan otomatis terisi."
+          }
+        }
+      ]
+    },
+    {
+      "name": "🧾 Invoices",
+      "item": [
+        {
+          "name": "Create Invoice 🔒",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.invoice_code) {",
+                  "  pm.collectionVariables.set('invoice_code', res.data.invoice_code);",
+                  "  console.log('✅ invoice_code tersimpan:', res.data.invoice_code);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/invoices",
+              "host": ["{{base_url}}"],
+              "path": ["api", "invoices"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"client_name\": \"PT Maju Jaya\",\n  \"client_email\": \"finance@majujaya.com\",\n  \"description\": \"Jasa desain website Q2 2026\",\n  \"amount_xlm\": 150.5\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Membuat invoice baru. Membutuhkan JWT token (Bearer).\n\nUser ID diambil otomatis dari token — tidak perlu dikirim di body.\n\nBody:\n- client_name  (required) — Nama klien, maks 150 karakter\n- client_email (required) — Email klien yang valid\n- description  (optional) — Deskripsi pekerjaan, maks 500 karakter\n- amount_xlm   (required) — Jumlah tagihan dalam XLM, harus > 0\n\n✅ Tab Tests menyimpan invoice_code otomatis ke {{invoice_code}}."
+          }
+        },
+        {
+          "name": "Get Invoice Detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/invoices/{{invoice_code}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "invoices", "{{invoice_code}}"]
+            },
+            "description": "Melihat detail invoice berdasarkan kode. Publik — tidak butuh token.\n\nSengaja publik agar klien bisa lihat jumlah XLM yang harus dibayar dan wallet tujuan transfer.\n\nParam URL:\n- invoice_code — Kode invoice (contoh: INV-1719480000000-A3F2B1C4)\n                 Terisi otomatis dari {{invoice_code}} setelah Create Invoice\n\nCara klien bayar:\n1. Lihat data.user.stellar_wallet → itu wallet tujuan transfer\n2. Transfer XLM sejumlah data.amount_xlm\n3. WAJIB isi memo dengan data.invoice_code saat transfer\n4. Merchant panggil Verify Payment untuk konfirmasi"
+          }
+        },
+        {
+          "name": "Verify Payment 🔒",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/invoices/{{invoice_code}}/verify",
+              "host": ["{{base_url}}"],
+              "path": ["api", "invoices", "{{invoice_code}}", "verify"]
+            },
+            "description": "Verifikasi apakah klien sudah membayar di jaringan Stellar.\nMembutuhkan JWT token. Hanya pemilik invoice yang bisa verifikasi.\n\nServer mengecek 20 transaksi terakhir di wallet merchant dan mencocokkan memo dengan invoice_code.\n\nParam URL:\n- invoice_code — Kode invoice yang ingin diverifikasi\n                 Terisi otomatis dari {{invoice_code}}\n\nTidak ada body.\n\nKemungkinan hasil:\n- success true  + status PAID    → pembayaran terdeteksi, invoice lunas\n- success true  + sudah PAID     → invoice memang sudah lunas sebelumnya\n- success false                  → pembayaran belum terdeteksi di Stellar"
+          }
+        }
+      ]
+    },
+    {
+      "name": "❌ Error Cases",
+      "item": [
+        {
+          "name": "Token Palsu → 401",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer tokenpalsubanget123" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/invoices",
+              "host": ["{{base_url}}"],
+              "path": ["api", "invoices"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"client_name\": \"Test\",\n  \"client_email\": \"test@test.com\",\n  \"amount_xlm\": 10\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "Tanpa Token → 401",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/invoices",
+              "host": ["{{base_url}}"],
+              "path": ["api", "invoices"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"client_name\": \"Test\",\n  \"client_email\": \"test@test.com\",\n  \"amount_xlm\": 10\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "Email Tidak Valid → 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/invoices",
+              "host": ["{{base_url}}"],
+              "path": ["api", "invoices"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"client_name\": \"Test\",\n  \"client_email\": \"bukan-format-email\",\n  \"amount_xlm\": 10\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "Amount Negatif → 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/invoices",
+              "host": ["{{base_url}}"],
+              "path": ["api", "invoices"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"client_name\": \"Test\",\n  \"client_email\": \"test@test.com\",\n  \"amount_xlm\": -5\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "Wallet Tidak Valid → 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stellar_wallet\": \"GABC123TIDAKVALID\",\n  \"display_name\": \"Test\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "Register Duplikat → 409",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stellar_wallet\": \"GCEZWKCA5VLDNRLN3RPRJMRZOX3Z6G5CHCGM8BKEV4SQWNWQRMWBFBY\",\n  \"display_name\": \"Coba Duplikat\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "Route Tidak Ada → 404",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/tidakada",
+              "host": ["{{base_url}}"],
+              "path": ["api", "tidakada"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

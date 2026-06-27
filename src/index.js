@@ -1,27 +1,81 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
+require("dotenv").config();
 
-const userRoutes = require('./routes/userRoutes');
-const invoiceRoutes = require('./routes/invoiceRoutes');
+// Tangkap semua error yang tidak tertangkap sebelum server crash diam-diam
+process.on("uncaughtException", (err) => {
+  console.error("[FATAL] Uncaught Exception:", err);
+  process.exit(1);
+});
+
+process.on("unhandledRejection", (reason) => {
+  console.error("[FATAL] Unhandled Rejection:", reason);
+  process.exit(1);
+});
+
+const { validateEnv } = require("./config/env");
+validateEnv();
+
+const express = require("express");
+const cors = require("cors");
+const helmet = require("helmet");
+
+const userRoutes = require("./routes/userRoutes");
+const invoiceRoutes = require("./routes/invoiceRoutes");
+const authRoutes = require("./routes/authRoutes");
+const { globalLimiter } = require("./middlewares/rateLimiter");
+const {
+  globalErrorHandler,
+  notFoundHandler,
+} = require("./middlewares/errorHandler");
+const logger = require("./utils/logger");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
-app.use(express.json()); // Agar Express bisa membaca JSON dari frontend
+// ─── Security Headers ────────────────────────────────────────────────────────
+app.use(helmet());
 
-app.get('/api/welcome', (req, res) => {
-  res.send('Caira API is running with Layered Architecture! 🚀');
+// ─── CORS ────────────────────────────────────────────────────────────────────
+const corsOptions = {
+  origin: process.env.ALLOWED_ORIGIN || "http://localhost:3000",
+  methods: ["GET", "POST"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  optionsSuccessStatus: 200,
+};
+app.use(cors(corsOptions));
+
+// ─── Rate Limiting (global) ───────────────────────────────────────────────────
+app.use(globalLimiter);
+
+// ─── Body Parser ─────────────────────────────────────────────────────────────
+app.use(express.json({ limit: "10kb", strict: true }));
+
+// ─── Routes ──────────────────────────────────────────────────────────────────
+app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/invoices", invoiceRoutes);
+
+// ─── Health Check ─────────────────────────────────────────────────────────────
+app.get("/api/health", (req, res) => {
+  res.json({
+    success: true,
+    message: "Caira API is running.",
+    timestamp: new Date().toISOString(),
+  });
 });
 
-app.use('/api/users', userRoutes);
-app.use('/api/invoices',invoiceRoutes);
+// ─── 404 Handler ─────────────────────────────────────────────────────────────
+app.use(notFoundHandler);
 
-app.get('/', (req, res) => {
-  res.send('Caira API is running with Layered Architecture! 🚀');
+// ─── Global Error Handler ─────────────────────────────────────────────────────
+app.use(globalErrorHandler);
+
+const server = app.listen(PORT, () => {
+  logger.info(
+    `[CAIRA-API] Server berjalan di http://localhost:${PORT} | ENV: ${process.env.NODE_ENV || "development"}`,
+  );
 });
 
-app.listen(PORT, () => {
-  console.log(`[CAIRA-API] Server berjalan mulus di http://localhost:${PORT}`);
+server.on("error", (err) => {
+  logger.error(`[FATAL] Gagal start server: ${err.message}`);
+  process.exit(1);
 });
