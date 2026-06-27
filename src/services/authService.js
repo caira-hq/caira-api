@@ -1,9 +1,9 @@
-const { randomBytes } = require('crypto');
-const { Keypair } = require('@stellar/stellar-sdk');
-const prisma = require('../config/db');
-const { signToken } = require('../config/jwt');
-const { AppError } = require('../middlewares/errorHandler');
-const logger = require('../utils/logger');
+const { randomBytes, createHash } = require("crypto");
+const { Keypair } = require("@stellar/stellar-sdk");
+const prisma = require("../config/db");
+const { signToken } = require("../config/jwt");
+const { AppError } = require("../middlewares/errorHandler");
+const logger = require("../utils/logger");
 
 /**
  * Simpan challenge sementara di memori.
@@ -42,10 +42,10 @@ const generateChallenge = async (walletAddress) => {
   });
 
   if (!user) {
-    throw new AppError('Wallet Stellar ini belum terdaftar di Caira.', 404);
+    throw new AppError("Wallet Stellar ini belum terdaftar di Caira.", 404);
   }
 
-  const nonce = randomBytes(16).toString('hex');
+  const nonce = randomBytes(16).toString("hex");
   const message = buildChallengeMessage(walletAddress, nonce);
 
   storeChallenge(walletAddress, nonce);
@@ -64,8 +64,8 @@ const verifySignatureAndLogin = async (walletAddress, signature) => {
 
   if (!nonce) {
     throw new AppError(
-      'Challenge tidak ditemukan atau sudah kadaluarsa. Minta challenge baru.',
-      401
+      "Challenge tidak ditemukan atau sudah kadaluarsa. Minta challenge baru.",
+      401,
     );
   }
 
@@ -74,7 +74,7 @@ const verifySignatureAndLogin = async (walletAddress, signature) => {
 
   if (!isValid) {
     logger.warn(`[AUTH] Signature tidak valid untuk wallet: ${walletAddress}`);
-    throw new AppError('Signature tidak valid.', 401);
+    throw new AppError("Signature tidak valid.", 401);
   }
 
   const user = await prisma.user.findUnique({
@@ -82,14 +82,21 @@ const verifySignatureAndLogin = async (walletAddress, signature) => {
   });
 
   if (!user) {
-    throw new AppError('User tidak ditemukan.', 404);
+    throw new AppError("User tidak ditemukan.", 404);
   }
 
   const token = signToken({ id: user.id, stellar_wallet: user.stellar_wallet });
 
   logger.info(`[AUTH] Login berhasil untuk wallet: ${walletAddress}`);
 
-  return { token, user: { id: user.id, display_name: user.display_name, stellar_wallet: user.stellar_wallet } };
+  return {
+    token,
+    user: {
+      id: user.id,
+      display_name: user.display_name,
+      stellar_wallet: user.stellar_wallet,
+    },
+  };
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -100,8 +107,14 @@ const buildChallengeMessage = (wallet, nonce) =>
 const verifyStellarSignature = (walletAddress, message, signatureBase64) => {
   try {
     const keypair = Keypair.fromPublicKey(walletAddress);
-    const messageBuffer = Buffer.from(message);
-    const signatureBuffer = Buffer.from(signatureBase64, 'base64');
+    const signatureBuffer = Buffer.from(signatureBase64, "base64");
+
+    // Freighter's signMessage (SUBMIT_BLOB protocol) signs:
+    //   SHA256( "Stellar Signed Message:\n" + message )
+    // — NOT the raw message bytes. We must verify against the same hash.
+    const prefixed = `Stellar Signed Message:\n${message}`;
+    const messageBuffer = createHash("sha256").update(prefixed).digest();
+
     return keypair.verify(messageBuffer, signatureBuffer);
   } catch {
     return false;
