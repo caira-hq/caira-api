@@ -13,7 +13,7 @@ Backend API untuk **Caira** — platform invoicing berbasis blockchain Stellar. 
 | Database | PostgreSQL + Prisma ORM |
 | Blockchain | Stellar Network (via `@stellar/stellar-sdk`) |
 | Auth | JWT + Stellar Wallet Signature |
-| Security | Helmet, CORS, Rate Limiting |
+| Security | Global API Key, Helmet, CORS, Rate Limiting |
 
 ---
 
@@ -29,8 +29,10 @@ src/
 ├── controllers/
 │   ├── authController.js
 │   ├── invoiceController.js
+│   ├── withdrawController.js
 │   └── userController.js
 ├── middlewares/
+│   ├── apiKeyAuth.js    # Global API Key protection
 │   ├── authenticate.js  # Guard JWT — proteksi route
 │   ├── errorHandler.js  # Global error handler + AppError class
 │   ├── rateLimiter.js   # Rate limiting (global & strict)
@@ -38,8 +40,10 @@ src/
 ├── routes/
 │   ├── authRoutes.js
 │   ├── invoiceRoutes.js
+│   ├── withdrawRoutes.js
 │   └── userRoutes.js
 ├── services/
+│   ├── anchorService.js   # Mock service untuk Fiat Off-Ramp / E-Wallet
 │   ├── authService.js     # Logic challenge, signature, JWT
 │   ├── invoiceService.js  # Logic CRUD invoice
 │   ├── stellarService.js  # Pengecekan transaksi di blockchain
@@ -54,9 +58,9 @@ src/
 
 ## Prasyarat
 
-- **Node.js** v18+
-- **PostgreSQL** running di lokal
-- **Git**
+- Node.js v18+
+- PostgreSQL running di lokal
+- Git
 
 ---
 
@@ -85,6 +89,9 @@ DATABASE_URL="postgresql://user:password@localhost:5432/caira_db"
 # Server
 PORT=5000
 NODE_ENV=development
+
+# Kunci Rahasia Global (Wajib untuk semua request dari Frontend)
+CAIRA_API_KEY="caira_hackathon_super_secret_2026"
 
 # CORS — URL frontend yang diizinkan
 ALLOWED_ORIGIN=http://localhost:3000
@@ -148,18 +155,20 @@ node sign-challenge.js <SECRET_KEY>
 
 ## API Reference
 
-Base URL: `http://localhost:5000`
+**Base URL:** `http://localhost:5000`
 
-> 🔒 = Membutuhkan header `Authorization: Bearer <token>`
+> 🔑 **PENTING:** Semua endpoint (publik maupun privat) **WAJIB** menyertakan header `x-api-key: <CAIRA_API_KEY>`.  
+> 🔒 = Membutuhkan header tambahan `Authorization: Bearer <token>`
 
 ---
 
 ### Health
 
 #### `GET /api/health`
+
 Cek status server.
 
-**Response `200`:**
+**Response 200:**
 ```json
 {
   "success": true,
@@ -173,9 +182,11 @@ Cek status server.
 ### Users
 
 #### `POST /api/users`
+
 Mendaftarkan user baru menggunakan Stellar wallet address.
 
 **Body:**
+
 | Field | Tipe | Wajib | Keterangan |
 |---|---|---|---|
 | `stellar_wallet` | string | ✅ | Stellar Ed25519 public key (dimulai `G`) |
@@ -189,7 +200,7 @@ Mendaftarkan user baru menggunakan Stellar wallet address.
 }
 ```
 
-**Response `201`:**
+**Response 201:**
 ```json
 {
   "success": true,
@@ -204,6 +215,7 @@ Mendaftarkan user baru menggunakan Stellar wallet address.
 ```
 
 **Error:**
+
 | Status | Kondisi |
 |---|---|
 | `400` | Format `stellar_wallet` tidak valid |
@@ -214,9 +226,11 @@ Mendaftarkan user baru menggunakan Stellar wallet address.
 ### Auth
 
 #### `POST /api/auth/challenge`
+
 Meminta challenge yang harus ditandatangani oleh client. Challenge kedaluwarsa dalam **5 menit**.
 
 **Body:**
+
 | Field | Tipe | Wajib | Keterangan |
 |---|---|---|---|
 | `stellar_wallet` | string | ✅ | Wallet yang sudah terdaftar |
@@ -228,7 +242,7 @@ Meminta challenge yang harus ditandatangani oleh client. Challenge kedaluwarsa d
 }
 ```
 
-**Response `200`:**
+**Response 200:**
 ```json
 {
   "success": true,
@@ -241,9 +255,11 @@ Meminta challenge yang harus ditandatangani oleh client. Challenge kedaluwarsa d
 ---
 
 #### `POST /api/auth/verify`
+
 Memverifikasi signature dan mengeluarkan JWT token.
 
 **Body:**
+
 | Field | Tipe | Wajib | Keterangan |
 |---|---|---|---|
 | `stellar_wallet` | string | ✅ | Sama dengan yang dipakai di `/challenge` |
@@ -257,7 +273,7 @@ Memverifikasi signature dan mengeluarkan JWT token.
 }
 ```
 
-**Response `200`:**
+**Response 200:**
 ```json
 {
   "success": true,
@@ -274,6 +290,7 @@ Memverifikasi signature dan mengeluarkan JWT token.
 ```
 
 **Error:**
+
 | Status | Kondisi |
 |---|---|
 | `401` | Signature tidak valid |
@@ -284,9 +301,11 @@ Memverifikasi signature dan mengeluarkan JWT token.
 ### Invoices
 
 #### `POST /api/invoices` 🔒
+
 Membuat invoice baru. User ID diambil otomatis dari JWT token.
 
 **Body:**
+
 | Field | Tipe | Wajib | Keterangan |
 |---|---|---|---|
 | `client_name` | string | ✅ | Nama klien, maks 150 karakter |
@@ -304,7 +323,7 @@ Membuat invoice baru. User ID diambil otomatis dari JWT token.
 }
 ```
 
-**Response `201`:**
+**Response 201:**
 ```json
 {
   "success": true,
@@ -326,14 +345,16 @@ Membuat invoice baru. User ID diambil otomatis dari JWT token.
 ---
 
 #### `GET /api/invoices/:invoice_code`
+
 Melihat detail invoice. **Publik** — tidak butuh token, agar klien bisa melihat jumlah dan wallet tujuan pembayaran.
 
 **Param URL:**
+
 | Param | Keterangan |
 |---|---|
 | `invoice_code` | Kode invoice (contoh: `INV-1719480000000-A3F2B1C4`) |
 
-**Response `200`:**
+**Response 200:**
 ```json
 {
   "success": true,
@@ -355,6 +376,7 @@ Melihat detail invoice. **Publik** — tidak butuh token, agar klien bisa meliha
 ```
 
 **Error:**
+
 | Status | Kondisi |
 |---|---|
 | `404` | Invoice tidak ditemukan |
@@ -362,18 +384,20 @@ Melihat detail invoice. **Publik** — tidak butuh token, agar klien bisa meliha
 ---
 
 #### `POST /api/invoices/:invoice_code/verify` 🔒
-Memverifikasi pembayaran di jaringan Stellar. Hanya pemilik invoice yang bisa memanggil endpoint ini.
 
-Server mengecek 20 transaksi terakhir di wallet merchant dan mencocokkan **memo transaksi** dengan `invoice_code`. Jika cocok, status invoice otomatis diubah menjadi `PAID`.
+Memverifikasi pembayaran di jaringan Stellar. **Hanya pemilik invoice** yang bisa memanggil endpoint ini.
+
+Server mengecek 20 transaksi terakhir di wallet merchant dan mencocokkan memo transaksi dengan `invoice_code`. Jika cocok, status invoice otomatis diubah menjadi `PAID`.
 
 **Param URL:**
+
 | Param | Keterangan |
 |---|---|
 | `invoice_code` | Kode invoice yang ingin diverifikasi |
 
-**Tidak ada body.**
+> Tidak ada request body.
 
-**Response `200` — Berhasil diverifikasi:**
+**Response 200 — Berhasil diverifikasi:**
 ```json
 {
   "success": true,
@@ -382,7 +406,7 @@ Server mengecek 20 transaksi terakhir di wallet merchant dan mencocokkan **memo 
 }
 ```
 
-**Response `200` — Belum dibayar:**
+**Response 200 — Belum dibayar:**
 ```json
 {
   "success": false,
@@ -391,6 +415,7 @@ Server mengecek 20 transaksi terakhir di wallet merchant dan mencocokkan **memo 
 ```
 
 **Error:**
+
 | Status | Kondisi |
 |---|---|
 | `403` | Bukan pemilik invoice |
@@ -398,12 +423,12 @@ Server mengecek 20 transaksi terakhir di wallet merchant dan mencocokkan **memo 
 
 ---
 
-## Cara Klien Bayar Invoice
+### Cara Klien Bayar Invoice
 
-1. Klien buka `GET /api/invoices/:invoice_code` dan lihat detail invoice
-2. Klien transfer XLM ke **`data.user.stellar_wallet`** (wallet merchant)
-3. **Wajib isi memo** dengan nilai **`data.invoice_code`** saat melakukan transfer
-4. Merchant panggil `POST /api/invoices/:invoice_code/verify` untuk konfirmasi
+1. Klien buka `GET /api/invoices/:invoice_code` dan lihat detail invoice.
+2. Klien transfer XLM ke `data.user.stellar_wallet` (wallet merchant).
+3. **Wajib** isi memo dengan nilai `data.invoice_code` saat melakukan transfer.
+4. Merchant panggil `POST /api/invoices/:invoice_code/verify` untuk konfirmasi otomatis.
 
 ---
 
@@ -416,9 +441,11 @@ postman/caira-api.postman_collection.json
 ```
 
 **Fitur otomatis dalam koleksi:**
-- Setelah **Verify & Login** sukses → `{{token}}` tersimpan otomatis
-- Setelah **Create Invoice** sukses → `{{invoice_code}}` tersimpan otomatis
-- Semua endpoint protected sudah pakai `Bearer {{token}}`
+
+- Pastikan memasukkan `x-api-key` di tab **Headers** secara global agar semua endpoint bisa diakses.
+- Setelah **Verify & Login** sukses → `{{token}}` tersimpan otomatis.
+- Setelah **Create Invoice** sukses → `{{invoice_code}}` tersimpan otomatis.
+- Semua endpoint protected sudah pakai `Bearer {{token}}`.
 
 ---
 
@@ -426,15 +453,16 @@ postman/caira-api.postman_collection.json
 
 | Fitur | Keterangan |
 |---|---|
-| **Helmet** | Menambahkan 11+ HTTP security header |
-| **CORS** | Dibatasi hanya ke origin yang diset di `ALLOWED_ORIGIN` |
-| **Rate Limiting** | 100 req/15 menit (global) · 10 req/menit (endpoint sensitif) |
-| **Body Size Limit** | Maksimal 10KB per request |
-| **Input Validation** | Email, Stellar wallet, tipe data, panjang karakter |
-| **JWT Auth** | Token HS256, kedaluwarsa 7 hari (configurable) |
-| **Stellar Signature** | Login diverifikasi on-chain menggunakan Ed25519 |
-| **Ownership Check** | Verifikasi invoice hanya bisa dilakukan pemilik invoice |
-| **Error Masking** | System error tidak bocor ke client di production |
+| Global API Key | Mencegah akses ke API dari frontend atau bot tidak resmi menggunakan header `x-api-key` |
+| Helmet | Menambahkan 11+ HTTP security header |
+| CORS | Dibatasi hanya ke origin yang diset di `ALLOWED_ORIGIN` |
+| Rate Limiting | 100 req/15 menit (global) · 10 req/menit (endpoint sensitif) |
+| Body Size Limit | Maksimal 10KB per request |
+| Input Validation | Email, Stellar wallet, tipe data, panjang karakter |
+| JWT Auth | Token HS256, kedaluwarsa 7 hari (configurable) |
+| Stellar Signature | Login diverifikasi on-chain menggunakan Ed25519 |
+| Ownership Check | Verifikasi invoice hanya bisa dilakukan pemilik invoice |
+| Error Masking | System error tidak bocor ke client di production |
 
 ---
 
@@ -447,7 +475,7 @@ Semua response mengikuti format yang konsisten:
 {
   "success": true,
   "message": "...",
-  "data": { }
+  "data": {}
 }
 
 // Error
@@ -464,6 +492,7 @@ Semua response mengikuti format yang konsisten:
 | Variable | Wajib | Default | Keterangan |
 |---|---|---|---|
 | `DATABASE_URL` | ✅ | — | PostgreSQL connection string |
+| `CAIRA_API_KEY` | ✅ | — | Kunci rahasia global untuk header `x-api-key` |
 | `JWT_SECRET` | ✅ | — | Secret key JWT, min 32 karakter |
 | `PORT` | ❌ | `5000` | Port server |
 | `NODE_ENV` | ❌ | `development` | Mode environment |
