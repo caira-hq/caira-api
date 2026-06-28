@@ -27,6 +27,7 @@ const {
   notFoundHandler,
 } = require("./middlewares/errorHandler");
 const logger = require("./utils/logger");
+const apiKeyAuth = require("./middlewares/apiKeyAuth");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -38,7 +39,7 @@ app.use(helmet());
 const corsOptions = {
   origin: process.env.ALLOWED_ORIGIN || "http://localhost:3000",
   methods: ["GET", "POST"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  allowedHeaders: ["Content-Type", "Authorization","x-api-key"],
   optionsSuccessStatus: 200,
 };
 app.use(cors(corsOptions));
@@ -48,6 +49,7 @@ app.use(globalLimiter);
 
 // ─── Body Parser ─────────────────────────────────────────────────────────────
 app.use(express.json({ limit: "10kb", strict: true }));
+app.use(apiKeyAuth);
 
 // ─── Routes ──────────────────────────────────────────────────────────────────
 app.use("/api/auth", authRoutes);
