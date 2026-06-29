@@ -1,4 +1,4 @@
-const REQUIRED_VARS = ["DATABASE_URL", "JWT_SECRET"];
+const REQUIRED_VARS = ["DATABASE_URL", "JWT_SECRET"];   
 
 const validateEnv = () => {
   const missing = REQUIRED_VARS.filter((key) => !process.env[key]);
@@ -9,4 +9,4 @@ const validateEnv = () => {
   }
 };
 
-module.exports = { validateEnv };
+export  { validateEnv };

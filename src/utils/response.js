@@ -1,4 +1,4 @@
-const success = (res, data, message = 'OK', statusCode = 200) => {
+const success = (res, data, message = 'OK', statusCode = 200) => {  
   return res.status(statusCode).json({ success: true, message, data });
 };
 
@@ -10,4 +10,4 @@ const error = (res, message = 'Terjadi kesalahan.', statusCode = 400) => {
   return res.status(statusCode).json({ success: false, message });
 };
 
-module.exports = { success, created, error };
+export { success, created, error };

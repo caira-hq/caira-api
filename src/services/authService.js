@@ -1,9 +1,9 @@
-const { randomBytes, createHash } = require("crypto");
-const { Keypair } = require("@stellar/stellar-sdk");
-const prisma = require("../config/db");
-const { signToken } = require("../config/jwt");
-const { AppError } = require("../middlewares/errorHandler");
-const logger = require("../utils/logger");
+import { randomBytes, createHash } from "crypto";
+import { Keypair } from "@stellar/stellar-sdk";
+import prisma from "../config/db.js";
+import { signToken } from "../config/jwt.js";
+import { AppError } from "../middlewares/errorHandler.js";
+import logger from "../utils/logger.js";   
 
 /**
  * Simpan challenge sementara di memori.
@@ -121,4 +121,4 @@ const verifyStellarSignature = (walletAddress, message, signatureBase64) => {
   }
 };
 
-module.exports = { generateChallenge, verifySignatureAndLogin };
+export { generateChallenge, verifySignatureAndLogin };

@@ -1,5 +1,5 @@
-const authService = require('../services/authService');
-const response = require('../utils/response');
+import * as authService from '../services/authService.js'
+import * as response from '../utils/response.js'
 
 /**
  * POST /api/auth/challenge
@@ -29,4 +29,4 @@ const verifyAndLogin = async (req, res, next) => {
   }
 };
 
-module.exports = { requestChallenge, verifyAndLogin };
+export { requestChallenge, verifyAndLogin };

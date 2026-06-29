@@ -1,4 +1,4 @@
-const rateLimit = require('express-rate-limit');
+import rateLimit from 'express-rate-limit';
 
 /**
  * Limiter umum untuk semua route API.
@@ -30,4 +30,4 @@ const strictLimiter = rateLimit({
   },
 });
 
-module.exports = { globalLimiter, strictLimiter };
+export { globalLimiter, strictLimiter };

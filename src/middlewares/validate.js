@@ -1,5 +1,5 @@
-const { StrKey } = require('@stellar/stellar-sdk');
-const { AppError } = require('./errorHandler');
+import { StrKey } from '@stellar/stellar-sdk';
+import { AppError } from './errorHandler.js';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -57,4 +57,4 @@ const validateBody = (schema) => (req, res, next) => {
   next();
 };
 
-module.exports = { validateBody };
+export { validateBody };

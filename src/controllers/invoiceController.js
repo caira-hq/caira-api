@@ -1,17 +1,17 @@
-const invoiceService = require("../services/invoiceService");
-const response = require("../utils/response");
+import { createInvoice, getInvoiceByCode, verifyAndSettleInvoice } from "../services/invoiceService.js";
+import { success, created } from "../utils/response.js";
 
-const createInvoice = async (req, res, next) => {
+const createInvoices = async (req, res, next) => {
   try {
     const { client_name, client_email, description, amount_xlm } = req.body;
-    const newInvoice = await invoiceService.createInvoice({
+    const newInvoice = await createInvoice({
       user_id: req.user.id,
       client_name,
       client_email,
       description,
       amount_xlm,
     });
-    return response.created(res, newInvoice, "Invoice berhasil dibuat.");
+    return created(res, newInvoice, "Invoice berhasil dibuat.");
   } catch (error) {
     next(error);
   }
@@ -19,8 +19,8 @@ const createInvoice = async (req, res, next) => {
 
 const getInvoiceDetails = async (req, res, next) => {
   try {
-    const invoice = await invoiceService.getInvoiceByCode(req.params.code);
-    return response.success(res, invoice);
+    const invoice = await getInvoiceByCode(req.params.code);
+    return success(res, invoice);
   } catch (error) {
     next(error);
   }
@@ -28,14 +28,14 @@ const getInvoiceDetails = async (req, res, next) => {
 
 const checkPaymentStatus = async (req, res, next) => {
   try {
-    const result = await invoiceService.verifyAndSettleInvoice(
+    const result = await verifyAndSettleInvoice(
       req.params.code,
       req.user.id,
     );
-    return res.status(200).json(result);
+    return success(res, result);
   } catch (error) {
     next(error);
   }
 };
 
-module.exports = { createInvoice, getInvoiceDetails, checkPaymentStatus };
+export { createInvoices, getInvoiceDetails, checkPaymentStatus };

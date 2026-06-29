@@ -1,5 +1,5 @@
-const { stellarServer, HORIZON_URL } = require("../config/stellar");
-const logger = require("../utils/logger");
+import { stellarServer, HORIZON_URL } from "../config/stellar.js";
+import logger from "../utils/logger.js";
 
 /**
  * Memverifikasi pembayaran di jaringan Stellar dengan mencocokkan
@@ -34,4 +34,4 @@ const verifyPayment = async (walletAddress, invoiceCode) => {
   return { paid: false };
 };
 
-module.exports = { verifyPayment };
+export { verifyPayment };

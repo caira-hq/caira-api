@@ -1,5 +1,5 @@
 const LOG_LEVELS = { error: 0, warn: 1, info: 2 };
-const CURRENT_LEVEL = LOG_LEVELS[process.env.LOG_LEVEL] ?? LOG_LEVELS.info;
+const CURRENT_LEVEL = LOG_LEVELS[process.env.LOG_LEVEL] ?? LOG_LEVELS.info; 
 
 const format = (level, message) => {
   const ts = new Date().toISOString();
@@ -18,4 +18,4 @@ const logger = {
   },
 };
 
-module.exports = logger;
+export default logger;

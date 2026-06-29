@@ -1,5 +1,5 @@
-const { verifyToken } = require('../config/jwt');
-const { AppError } = require('./errorHandler');
+import { verifyToken } from '../config/jwt.js';
+import { AppError } from './errorHandler.js';
 
 /**
  * Middleware untuk memproteksi route.
@@ -27,4 +27,4 @@ const authenticate = (req, res, next) => {
   }
 };
 
-module.exports = { authenticate };
+export { authenticate };

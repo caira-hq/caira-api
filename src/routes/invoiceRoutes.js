@@ -1,9 +1,9 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const invoiceController = require("../controllers/invoiceController");
-const { validateBody } = require("../middlewares/validate");
-const { strictLimiter } = require("../middlewares/rateLimiter");
-const { authenticate } = require("../middlewares/authenticate");
+import * as invoiceController from "../controllers/invoiceController.js";
+import { validateBody } from "../middlewares/validate.js";
+import { strictLimiter } from "../middlewares/rateLimiter.js";
+import { authenticate } from "../middlewares/authenticate.js";
 
 // user_id tidak perlu dari body — diambil dari JWT token
 const createInvoiceSchema = {
@@ -18,7 +18,7 @@ router.post(
   authenticate,
   strictLimiter,
   validateBody(createInvoiceSchema),
-  invoiceController.createInvoice,
+  invoiceController.createInvoices,
 );
 router.get("/:code", invoiceController.getInvoiceDetails); // publik — siapapun bisa lihat invoice untuk bayar
 router.post(
@@ -27,17 +27,5 @@ router.post(
   strictLimiter,
   invoiceController.checkPaymentStatus,
 );
-router.post(
-  "/",
-  strictLimiter,
-  validateBody(createInvoiceSchema),
-  invoiceController.createInvoice,
-);
-router.get("/:code", invoiceController.getInvoiceDetails);
-router.post(
-  "/:code/verify",
-  strictLimiter,
-  invoiceController.checkPaymentStatus,
-);
 
-module.exports = router;
+export default router;

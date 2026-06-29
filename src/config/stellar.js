@@ -1,4 +1,4 @@
-const { Horizon } = require('@stellar/stellar-sdk');
+import { Horizon } from '@stellar/stellar-sdk';
 
 const HORIZON_URL =
   process.env.STELLAR_NETWORK === 'mainnet'
@@ -7,4 +7,4 @@ const HORIZON_URL =
 
 const stellarServer = new Horizon.Server(HORIZON_URL);
 
-module.exports = { stellarServer, HORIZON_URL };
+export { stellarServer, HORIZON_URL };

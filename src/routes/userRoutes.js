@@ -1,8 +1,8 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const userController = require("../controllers/userController");
-const { validateBody } = require("../middlewares/validate");
-const { strictLimiter } = require("../middlewares/rateLimiter");
+import { registerUser } from "../controllers/userController.js";
+import { validateBody } from "../middlewares/validate.js";
+import { strictLimiter } from "../middlewares/rateLimiter.js";
 
 const registerSchema = {
   stellar_wallet: { required: true, type: "string", isStellarWallet: true },
@@ -13,7 +13,7 @@ router.post(
   "/",
   strictLimiter,
   validateBody(registerSchema),
-  userController.registerUser,
+  registerUser,
 );
 
-module.exports = router;
+export default router;

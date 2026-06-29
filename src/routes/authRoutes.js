@@ -1,8 +1,8 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const authController = require('../controllers/authController');
-const { validateBody } = require('../middlewares/validate');
-const { strictLimiter } = require('../middlewares/rateLimiter');
+import * as authController from '../controllers/authController.js';
+import { validateBody } from '../middlewares/validate.js';
+import { strictLimiter } from '../middlewares/rateLimiter.js';
 
 const challengeSchema = {
   stellar_wallet: { required: true, type: 'string', isStellarWallet: true },
@@ -16,4 +16,4 @@ const verifySchema = {
 router.post('/challenge', strictLimiter, validateBody(challengeSchema), authController.requestChallenge);
 router.post('/verify',    strictLimiter, validateBody(verifySchema),    authController.verifyAndLogin);
 
-module.exports = router;
+export default router;

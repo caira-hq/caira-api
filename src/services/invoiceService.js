@@ -1,7 +1,7 @@
-const { randomBytes } = require("crypto");
-const prisma = require("../config/db");
-const { verifyPayment } = require("./stellarService");
-const { AppError } = require("../middlewares/errorHandler");
+import { randomBytes } from "crypto";
+import prisma from "../config/db.js";
+import { verifyPayment } from "./stellarService.js";
+import { AppError } from "../middlewares/errorHandler.js";
 
 /**
  * Menghasilkan kode invoice unik.
@@ -91,4 +91,4 @@ const verifyAndSettleInvoice = async (invoiceCode, userId) => {
   };
 };
 
-module.exports = { createInvoice, getInvoiceByCode, verifyAndSettleInvoice };
+export { createInvoice, getInvoiceByCode, verifyAndSettleInvoice };

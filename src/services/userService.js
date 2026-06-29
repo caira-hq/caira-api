@@ -1,5 +1,5 @@
-const prisma = require("../config/db");
-const { AppError } = require("../middlewares/errorHandler");
+import prisma from "../config/db.js";
+import { AppError } from "../middlewares/errorHandler.js";
 
 const createUser = async (walletAddress, displayName) => {
   const existingUser = await prisma.user.findUnique({
@@ -20,4 +20,4 @@ const createUser = async (walletAddress, displayName) => {
   return user;
 };
 
-module.exports = { createUser };
+export { createUser };

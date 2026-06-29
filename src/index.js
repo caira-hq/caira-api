@@ -1,5 +1,4 @@
-require("dotenv").config();
-
+import "dotenv/config";
 // Tangkap semua error yang tidak tertangkap sebelum server crash diam-diam
 process.on("uncaughtException", (err) => {
   console.error("[FATAL] Uncaught Exception:", err);
@@ -11,23 +10,23 @@ process.on("unhandledRejection", (reason) => {
   process.exit(1);
 });
 
-const { validateEnv } = require("./config/env");
-validateEnv();
+import { validateEnv } from "./config/env.js"
+validateEnv()
 
-const express = require("express");
-const cors = require("cors");
-const helmet = require("helmet");
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
 
-const userRoutes = require("./routes/userRoutes");
-const invoiceRoutes = require("./routes/invoiceRoutes");
-const authRoutes = require("./routes/authRoutes");
-const { globalLimiter } = require("./middlewares/rateLimiter");
-const {
+import userRoutes from "./routes/userRoutes.js";
+import invoiceRoutes from "./routes/invoiceRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
+import { globalLimiter } from "./middlewares/rateLimiter.js";
+import {
   globalErrorHandler,
   notFoundHandler,
-} = require("./middlewares/errorHandler");
-const logger = require("./utils/logger");
-const apiKeyAuth = require("./middlewares/apiKeyAuth");
+} from "./middlewares/errorHandler.js";
+import logger from "./utils/logger.js";
+import apiKeyAuth from "./middlewares/apiKeyAuth.js";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -85,5 +84,4 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 
-module.exports = app;
-
+export default app;

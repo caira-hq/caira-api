@@ -1,4 +1,4 @@
-const logger = require('../utils/logger');
+import logger from '../utils/logger.js';
 
 /**
  * AppError digunakan untuk error operasional yang aman ditampilkan ke client.
@@ -45,4 +45,4 @@ const notFoundHandler = (req, res) => {
   });
 };
 
-module.exports = { AppError, globalErrorHandler, notFoundHandler };
+export { AppError, globalErrorHandler, notFoundHandler };
