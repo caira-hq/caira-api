@@ -71,13 +71,19 @@ app.use(notFoundHandler);
 // ─── Global Error Handler ─────────────────────────────────────────────────────
 app.use(globalErrorHandler);
 
-const server = app.listen(PORT, () => {
-  logger.info(
-    `[CAIRA-API] Server berjalan di http://localhost:${PORT} | ENV: ${process.env.NODE_ENV || "development"}`,
-  );
-});
+if (process.env.NODE_ENV !== 'production') {
+  const server = app.listen(PORT, () => {
+    logger.info(
+      `[CAIRA-API] Server berjalan di http://localhost:${PORT} | ENV: ${process.env.NODE_ENV || "development"}`,
+    );
+  });
+  
+  server.on("error", (err) => {
+    logger.error(`[FATAL] Gagal start server: ${err.message}`);
+    process.exit(1);
+  });
+}
 
-server.on("error", (err) => {
-  logger.error(`[FATAL] Gagal start server: ${err.message}`);
-  process.exit(1);
-});
+
+module.exports = app;
+
