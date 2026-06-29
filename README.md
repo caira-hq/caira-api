@@ -8,7 +8,7 @@ Backend API untuk **Caira** — platform invoicing berbasis blockchain Stellar. 
 
 | Layer | Teknologi |
 |---|---|
-| Runtime | Node.js (CommonJS) |
+| Runtime | Node.js (ESM) |
 | Framework | Express 5 |
 | Database | PostgreSQL + Prisma ORM |
 | Blockchain | Stellar Network (via `@stellar/stellar-sdk`) |
